@@ -27,7 +27,6 @@ import java.util.Collections;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@StepScope // jobparameters 사용
 public class SettlementJobConfig {
 
     private final JobRepository jobRepository;
@@ -37,9 +36,10 @@ public class SettlementJobConfig {
 
     // ItemReader
     @Bean
+    @StepScope // Bean 생성은 먼저 되지만 @StepScope라서 실제 실행은 Step 시작 시에 실행된다. ( 프록시 객체만 먼저 만들어짐 )
     public JpaPagingItemReader<Orders> ordersReader( // jpa를 사용한다면 ItemReader 로 JpaPagingItemReader 를 사용해야 한다.
-            @Value("#{jobparameters['targetDate']}") String targetDate) // 외부에서 날짜 주입
-    {
+            @Value("#{jobParameters['targetDate']}") String targetDate // 외부에서 날짜 주입
+    ) {
         log.info("[Reader] 정산 집계 대상 날짜: {}", targetDate);
 
         return new JpaPagingItemReaderBuilder<Orders>()
@@ -54,11 +54,12 @@ public class SettlementJobConfig {
     // ItemProcessor
     @Bean
     public ItemProcessor<Orders, Settlement> settlementProcessor() { // InputType: 데이터를 읽어오는 것은 Orders, OutputType: 데이터를 넣는것은 Settlement
-        log.info("[Processor] 정산 금액 계산");
-
         return item -> {
             int fee = (int) (item.getAmount() * 0.03);
             int settlementAmount = item.getAmount() - fee;
+
+            //log.info("[Processor] 정산 금액 계산 ( 주문 번호: {}, 주문 금액: {}, 수수료: {} )",
+            //        item.getId(), item.getAmount(), fee);
 
             return new Settlement(item.getId(), item.getStoreName(), settlementAmount, LocalDate.now());
         };
@@ -67,8 +68,6 @@ public class SettlementJobConfig {
     // ItemWriter
     @Bean
     public JpaItemWriter<Settlement> settlementWriter() { // JpaItemWriter는 기본적으로 entityManager.persist() 를 수행한다.
-        log.info("[Writer] 등록 처리");
-
         return new JpaItemWriterBuilder<Settlement>()
                 .entityManagerFactory(entityManagerFactory)
                 .build();
@@ -76,19 +75,19 @@ public class SettlementJobConfig {
 
     // Job 등록
     @Bean
-    public Job settlementJob() {
+    public Job settlementJob(Step settlementStep) {
         return new JobBuilder("settlementJob", jobRepository)
-                .start(settlementStep())
+                .start(settlementStep)
                 .build();
     }
 
     // Step 등록
     @Bean
-    public Step settlementStep() {
+    public Step settlementStep(JpaPagingItemReader<Orders> ordersReader) {
         return new StepBuilder("settlementStep", jobRepository)
                 .<Orders, Settlement>chunk(1_000)
                 .transactionManager(transactionManager)
-                .reader(ordersReader(null))
+                .reader(ordersReader)
                 .processor(settlementProcessor())
                 .writer(settlementWriter())
                 .build();
