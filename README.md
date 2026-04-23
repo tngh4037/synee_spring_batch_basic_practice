@@ -88,8 +88,9 @@
     - **ItemProcessor:** 읽어온 데이터를 **단건(1건)** 가공함
     - **Buffer(임시 저장소):** 가공된 데이터를 메모리 상의 리스트(Chunk)에 차곡차곡 쌓아놓음.
       - 아직 DB에 저장하지 않음
-      - Chunk Size가 10이라면, 이 과정을 10번 반복.
+      - Chunk Size가 10이라면, 이 과정을 10번 반복. 
         - 참고) chunkSize = 10 → 10개씩 commit ( 트랜잭션 처리 단위라고 보면 됨. )
+        - 참고) 우리는 chunkSize 를 1_000 으로 했다.
   - 일괄 처리 구간 (Bulk Write)
     - **ItemWriter:** Chunk가 꽉 차면, **리스트(List) 통째로** 넘겨받음.
     - **Commit:** Writer가 `saveAll()` 등을 수행하면, 그때 트랜잭션이 **단 1번 커밋됨**

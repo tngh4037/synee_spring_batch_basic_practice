@@ -6,7 +6,11 @@ import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.database.JpaItemWriter;
 import org.springframework.batch.infrastructure.item.database.JpaPagingItemReader;
@@ -49,7 +53,7 @@ public class SettlementJobConfig {
 
     // ItemProcessor
     @Bean
-    public ItemProcessor<Orders, Settlement> settlementItemProcessor() { // InputType: 데이터를 읽어오는 것은 Orders, OutputType: 데이터를 넣는것은 Settlement
+    public ItemProcessor<Orders, Settlement> settlementProcessor() { // InputType: 데이터를 읽어오는 것은 Orders, OutputType: 데이터를 넣는것은 Settlement
         log.info("[Processor] 정산 금액 계산");
 
         return item -> {
@@ -62,7 +66,7 @@ public class SettlementJobConfig {
 
     // ItemWriter
     @Bean
-    public JpaItemWriter<Settlement> settlementJpaItemWriter() {
+    public JpaItemWriter<Settlement> settlementWriter() {
         log.info("[Writer] 등록 처리");
 
         return new JpaItemWriterBuilder<Settlement>()
@@ -70,4 +74,23 @@ public class SettlementJobConfig {
                 .build();
     }
 
+    // Job 등록
+    @Bean
+    public Job settlementJob() {
+        return new JobBuilder("settlementJob", jobRepository)
+                .start(settlementStep())
+                .build();
+    }
+
+    // Step 등록
+    @Bean
+    public Step settlementStep() {
+        return new StepBuilder("settlementStep", jobRepository)
+                .<Orders, Settlement>chunk(1_000)
+                .transactionManager(transactionManager)
+                .reader(ordersReader(null))
+                .processor(settlementProcessor())
+                .writer(settlementWriter())
+                .build();
+    }
 }
