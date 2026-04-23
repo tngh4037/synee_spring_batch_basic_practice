@@ -1,11 +1,13 @@
 package com.batch.settlement.job;
 
 import com.batch.settlement.domain.Orders;
+import com.batch.settlement.domain.Settlement;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.batch.infrastructure.item.database.JpaPagingItemReader;
 import org.springframework.batch.infrastructure.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +45,18 @@ public class SettlementJobConfig {
                 .build();
     }
 
+    // ItemProcessor
+    @Bean
+    public ItemProcessor<Orders, Settlement> settlementItemProcessor() { // InputType: 데이터를 읽어오는 것은 Orders, OutputType: 데이터를 넣는것은 Settlement
+        log.info("[Processor] 정산 금액 계산");
+
+        return item -> {
+            int fee = (int) (item.getAmount() * 0.03);
+            int settlementAmount = item.getAmount() - fee;
+
+            return new Settlement(item.getId(), item.getStoreName(), settlementAmount, LocalDate.now());
+        };
+    }
 
 
 }
