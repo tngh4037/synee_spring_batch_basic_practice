@@ -8,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.database.JpaItemWriter;
 import org.springframework.batch.infrastructure.item.database.JpaPagingItemReader;
+import org.springframework.batch.infrastructure.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.infrastructure.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -58,5 +60,14 @@ public class SettlementJobConfig {
         };
     }
 
+    // ItemWriter
+    @Bean
+    public JpaItemWriter<Settlement> settlementJpaItemWriter() {
+        log.info("[Writer] 등록 처리");
+
+        return new JpaItemWriterBuilder<Settlement>()
+                .entityManagerFactory(entityManagerFactory)
+                .build();
+    }
 
 }
