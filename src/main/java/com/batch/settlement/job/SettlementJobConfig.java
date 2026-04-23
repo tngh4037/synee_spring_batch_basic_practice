@@ -66,7 +66,7 @@ public class SettlementJobConfig {
 
     // ItemWriter
     @Bean
-    public JpaItemWriter<Settlement> settlementWriter() {
+    public JpaItemWriter<Settlement> settlementWriter() { // JpaItemWriter는 기본적으로 entityManager.persist() 를 수행한다.
         log.info("[Writer] 등록 처리");
 
         return new JpaItemWriterBuilder<Settlement>()
