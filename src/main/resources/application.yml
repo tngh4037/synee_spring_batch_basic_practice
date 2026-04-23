@@ -17,4 +17,4 @@ spring:
     jdbc:
       initialize-schema: always # 배치가 실행될 때 필요한 메타 테이블들을 자동 생성해준다.
     job:
-      enabled: false
+      enabled: true # 젠킨스로 해당 job을 실행하기 위해 enabled의 값을 true로 변경해준다.
